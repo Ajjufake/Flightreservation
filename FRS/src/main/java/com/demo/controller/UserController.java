@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.*;
 
 import com.demo.entity.User;
 import com.demo.service.UserService;
+import com.demo.security.JwtUtil;
 
 @RestController
 @RequestMapping("/api/users")
@@ -15,6 +16,20 @@ public class UserController {
 
     @Autowired
     private UserService userService;
+
+    @Autowired
+    private JwtUtil jwtUtil;
+
+    // Get Current User Profile
+    @GetMapping("/me")
+    public User getCurrentUser(@RequestHeader(value = "Authorization", required = false) String authHeader) {
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            throw new RuntimeException("Missing or invalid token");
+        }
+        String token = authHeader.substring(7);
+        String email = jwtUtil.extractUsername(token);
+        return userService.getUserByEmail(email);
+    }
 
     // Add User
     @PostMapping

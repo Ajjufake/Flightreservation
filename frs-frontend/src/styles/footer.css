@@ -1,0 +1,109 @@
+.footer {
+  background-color: var(--primary-color);
+  color: #94a3b8;
+  padding: 60px 0 30px 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.footer-brand {
+  color: #ffffff;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 20px;
+}
+
+.footer h5 {
+  color: #ffffff;
+  font-weight: 600;
+  margin-bottom: 20px;
+  font-size: 16px;
+  letter-spacing: 0.5px;
+}
+
+.footer-links {
+  list-style: none;
+  padding-left: 0;
+}
+
+.footer-links li {
+  margin-bottom: 12px;
+}
+
+.footer-links a {
+  color: #94a3b8;
+  text-decoration: none;
+  transition: all 0.3s ease;
+  font-size: 14px;
+}
+
+.footer-links a:hover {
+  color: var(--accent-color);
+  padding-left: 4px;
+}
+
+.footer-social-icons {
+  display: flex;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.social-icon-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  transition: all 0.3s ease;
+}
+
+.social-icon-btn:hover {
+  background: var(--secondary-color);
+  transform: translateY(-2px);
+}
+
+.footer-input-group {
+  display: flex;
+  gap: 8px;
+}
+
+.footer-input-group input {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  color: #ffffff !important;
+  padding: 10px 14px !important;
+  font-size: 14px;
+  border-radius: 8px !important;
+  flex: 1;
+}
+
+.footer-input-group input::placeholder {
+  color: #64748b;
+}
+
+.footer-input-group button {
+  background: var(--accent-color) !important;
+  border: none !important;
+  color: #0b192c !important;
+  font-weight: 600 !important;
+  padding: 10px 16px !important;
+  border-radius: 8px !important;
+  transition: all 0.3s ease;
+}
+
+.footer-input-group button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(226, 182, 89, 0.3);
+}
+
+.footer-bottom {
+  margin-top: 40px;
+  padding-top: 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  font-size: 13px;
+}

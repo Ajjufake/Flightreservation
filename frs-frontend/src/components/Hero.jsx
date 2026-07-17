@@ -8,7 +8,7 @@ function Hero() {
 
       <div className="hero-left">
 
-        <h1>Seamless Sky Booking</h1>
+        <h1>Seamless <span>Sky Booking</span></h1>
 
         <p>
           Discover a smarter way to fly with reliable airlines,

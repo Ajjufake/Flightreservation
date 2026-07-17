@@ -1,164 +1,274 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import axios from "axios";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
+import { FaPlane, FaCalendarAlt, FaSearch, FaMapMarkerAlt, FaArrowRight } from "react-icons/fa";
 
 function SearchFlights() {
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const [search, setSearch] = useState({
-    source: "",
-    destination: "",
-    departureDate: ""
+    source: searchParams.get("source") || "",
+    destination: searchParams.get("destination") || "",
+    departureDate: searchParams.get("departureDate") || ""
   });
 
   const [flights, setFlights] = useState([]);
+  const [hasSearched, setHasSearched] = useState(false);
 
   const handleChange = (e) => {
-
     setSearch({
       ...search,
       [e.target.name]: e.target.value
     });
-
   };
 
   const handleSearch = () => {
     const params = {};
     if (search.source) params.source = search.source;
     if (search.destination) params.destination = search.destination;
+    
+    let url = "http://localhost:8080/api/flights/search";
     if (search.departureDate) {
       params.departureDate = search.departureDate;
     } else {
-      params.allDates = true;
+      url = "http://localhost:8080/api/flights/route";
     }
 
-    axios.get(
-
-      `http://localhost:8080/api/flights/search`,
-
-      {
-        params
-      }
-
-    )
-
-    .then((response) => {
-
-      setFlights(response.data);
-
-    })
-
-    .catch((error) => {
-
-      console.log(error);
-
-      alert("No Flights Found");
-
-    });
-
+    axios.get(url, { params })
+      .then((response) => {
+        setFlights(response.data);
+        setHasSearched(true);
+        // Sync URL search params
+        setSearchParams(params);
+      })
+      .catch((error) => {
+        console.log(error);
+        setFlights([]);
+        setHasSearched(true);
+      });
   };
 
+  // Run search on mount if query parameters exist
+  useEffect(() => {
+    const src = searchParams.get("source");
+    const dest = searchParams.get("destination");
+    const date = searchParams.get("departureDate");
+    
+    if (src && dest) {
+      const params = { source: src, destination: dest };
+      let url = "http://localhost:8080/api/flights/search";
+      if (date) {
+        params.departureDate = date;
+      } else {
+        url = "http://localhost:8080/api/flights/route";
+      }
+
+      axios.get(url, { params })
+        .then((response) => {
+          setFlights(response.data);
+          setHasSearched(true);
+        })
+        .catch((error) => {
+          console.log(error);
+          setFlights([]);
+          setHasSearched(true);
+        });
+    }
+  }, [searchParams]);
+
   return (
+    <div className="container mt-5 mb-5">
+      <div className="row">
+        {/* Left Column - Search Inputs */}
+        <div className="col-lg-4 mb-4">
+          <div className="card shadow-sm p-4" style={{ borderRadius: "16px", border: "1px solid var(--border-color)" }}>
+            <h4 className="fw-bold mb-4 text-primary d-flex align-items-center gap-2">
+              <FaSearch style={{ fontSize: "1.2rem" }} />
+              <span>Search Parameters</span>
+            </h4>
+            
+            <div className="mb-3">
+              <label className="form-label fw-semibold text-secondary d-flex align-items-center gap-2">
+                <FaMapMarkerAlt />
+                <span>Origin</span>
+              </label>
+              <input
+                className="form-control"
+                placeholder="Departure city"
+                name="source"
+                value={search.source}
+                onChange={handleChange}
+              />
+            </div>
 
-    <div className="container mt-5">
+            <div className="mb-3">
+              <label className="form-label fw-semibold text-secondary d-flex align-items-center gap-2">
+                <FaMapMarkerAlt />
+                <span>Destination</span>
+              </label>
+              <input
+                className="form-control"
+                placeholder="Arrival city"
+                name="destination"
+                value={search.destination}
+                onChange={handleChange}
+              />
+            </div>
 
-      <h2 className="mb-4">
-        Search Flights
-      </h2>
+            <div className="mb-4">
+              <label className="form-label fw-semibold text-secondary d-flex align-items-center gap-2">
+                <FaCalendarAlt />
+                <span>Departure Date</span>
+              </label>
+              <input
+                type="date"
+                className="form-control"
+                name="departureDate"
+                value={search.departureDate}
+                onChange={handleChange}
+              />
+            </div>
 
-      <input
-        className="form-control mb-3"
-        placeholder="Source"
-        name="source"
-        value={search.source}
-        onChange={handleChange}
-      />
+            <button
+              className="btn btn-primary w-100 py-2.5 fw-semibold d-flex align-items-center justify-content-center gap-2"
+              onClick={handleSearch}
+            >
+              <FaSearch />
+              <span>Search Flights</span>
+            </button>
+          </div>
+        </div>
 
-      <input
-        className="form-control mb-3"
-        placeholder="Destination"
-        name="destination"
-        value={search.destination}
-        onChange={handleChange}
-      />
+        {/* Right Column - Results */}
+        <div className="col-lg-8">
+          <div className="d-flex justify-content-between align-items-center mb-4">
+            <h3 className="fw-bold mb-0">Available Flights</h3>
+            {hasSearched && (
+              <span className="badge bg-secondary px-3 py-2 rounded-pill fs-6" style={{ background: "var(--secondary-color) !important" }}>
+                {flights.length} flights found
+              </span>
+            )}
+          </div>
 
-      <input
-        type="date"
-        className="form-control mb-3"
-        name="departureDate"
-        value={search.departureDate}
-        onChange={handleChange}
-      />
+          {!hasSearched && (
+            <div className="text-center py-5 card shadow-sm" style={{ border: "1px dashed var(--border-color)", background: "#ffffff" }}>
+              <div className="text-muted mb-3">
+                <FaPlane style={{ fontSize: "3rem", color: "var(--border-color)", transform: "rotate(45deg)" }} />
+              </div>
+              <h5 className="fw-semibold text-secondary">Enter search details to find flights</h5>
+              <p className="text-muted small">We search across multiple top-tier partner airlines</p>
+            </div>
+          )}
 
-      <button
-        className="btn btn-primary mb-4"
-        onClick={handleSearch}
-      >
-        Search Flights
-      </button>
+          {hasSearched && flights.length === 0 && (
+            <div className="text-center py-5 card shadow-sm" style={{ border: "1px dashed #f5c2c2", background: "#fffefe" }}>
+              <div className="text-danger mb-3">
+                <FaPlane style={{ fontSize: "3rem", color: "#f8d7da", transform: "rotate(45deg)" }} />
+              </div>
+              <h5 className="fw-semibold text-danger">No Flights Found</h5>
+              <p className="text-muted small">Try modifying your search criteria or dates</p>
+            </div>
+          )}
 
-      {flights.length > 0 && (
+          {flights.length > 0 && (
+            <div className="d-flex flex-column gap-3">
+              {flights.map((flight) => (
+                <div 
+                  key={flight.id} 
+                  className="card shadow-sm p-4 border-0" 
+                  style={{ 
+                    borderRadius: "16px", 
+                    background: "#ffffff", 
+                    borderLeft: "5px solid var(--accent-color) !important",
+                    boxShadow: "0 4px 15px rgba(0,0,0,0.02)"
+                  }}
+                >
+                  <div className="row align-items-center">
+                    {/* Airline & Number */}
+                    <div className="col-md-3 mb-3 mb-md-0">
+                      <div className="d-flex align-items-center gap-2">
+                        <div 
+                          className="d-flex align-items-center justify-content-center" 
+                          style={{ 
+                            width: "42px", 
+                            height: "42px", 
+                            borderRadius: "10px", 
+                            background: "rgba(30, 62, 98, 0.08)",
+                            color: "var(--secondary-color)"
+                          }}
+                        >
+                          <FaPlane style={{ transform: "rotate(45deg)" }} />
+                        </div>
+                        <div>
+                          <h6 className="fw-bold mb-0 text-dark">{flight.airline}</h6>
+                          <small className="text-muted">{flight.flightNumber}</small>
+                        </div>
+                      </div>
+                    </div>
 
-        <table className="table table-bordered">
+                    {/* Timeline Path */}
+                    <div className="col-md-5 mb-3 mb-md-0">
+                      <div className="d-flex align-items-center justify-content-center gap-3 px-2">
+                        <div className="text-center">
+                          <h5 className="fw-bold mb-0 text-dark" style={{ letterSpacing: "1px" }}>{flight.source}</h5>
+                          <small className="text-muted">Origin</small>
+                        </div>
+                        
+                        <div className="flex-grow-1 position-relative d-flex align-items-center justify-content-center" style={{ minWidth: "80px" }}>
+                          <div style={{ width: "100%", height: "2px", background: "var(--border-color)" }}></div>
+                          <FaPlane 
+                            className="position-absolute" 
+                            style={{ 
+                              color: "var(--secondary-color)", 
+                              transform: "rotate(90deg)",
+                              background: "#ffffff",
+                              padding: "2px",
+                              fontSize: "18px"
+                            }} 
+                          />
+                        </div>
 
-          <thead>
+                        <div className="text-center">
+                          <h5 className="fw-bold mb-0 text-dark" style={{ letterSpacing: "1px" }}>{flight.destination}</h5>
+                          <small className="text-muted">Destination</small>
+                        </div>
+                      </div>
+                    </div>
 
-            <tr>
-
-              <th>Flight</th>
-              <th>Airline</th>
-              <th>Source</th>
-              <th>Destination</th>
-              <th>Date</th>
-              <th>Price</th>
-              <th></th>
-
-            </tr>
-
-          </thead>
-
-          <tbody>
-
-            {flights.map((flight) => (
-
-              <tr key={flight.id}>
-
-                <td>{flight.flightNumber}</td>
-
-                <td>{flight.airline}</td>
-
-                <td>{flight.source}</td>
-
-                <td>{flight.destination}</td>
-
-                <td>{flight.departureDate}</td>
-
-                <td>₹{flight.price}</td>
-
-                <td>
-
-                  <Link
-                    className="btn btn-success"
-                    to={`/booking?flightId=${flight.id}`}
-                  >
-                    Book
-                  </Link>
-
-                </td>
-
-              </tr>
-
-            ))}
-
-          </tbody>
-
-        </table>
-
-      )}
-
+                    {/* Date & Price */}
+                    <div className="col-md-4 text-md-end d-flex flex-row flex-md-column justify-content-between align-items-center align-items-md-end gap-2">
+                      <div>
+                        <span className="badge bg-light text-secondary border px-2.5 py-1.5 fw-semibold d-inline-flex align-items-center gap-1.5">
+                          <FaCalendarAlt size={12} />
+                          <span>{flight.departureDate}</span>
+                        </span>
+                      </div>
+                      
+                      <div className="mt-md-2 d-flex align-items-center gap-3">
+                        <div className="text-md-end">
+                          <span className="text-muted small d-block">Price per adult</span>
+                          <span className="fs-4 fw-extrabold text-primary" style={{ letterSpacing: "-0.5px" }}>
+                            ₹{flight.price.toLocaleString("en-IN")}
+                          </span>
+                        </div>
+                        
+                        <Link
+                          className="btn btn-success px-4 py-2"
+                          to={`/booking?flightId=${flight.id}`}
+                        >
+                          Book <FaArrowRight className="ms-1" size={12} />
+                        </Link>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
     </div>
-
   );
-
 }
 
 export default SearchFlights;
