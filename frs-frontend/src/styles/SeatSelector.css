@@ -84,6 +84,17 @@
   box-shadow: none;
 }
 
+/* Seat chosen by another passenger in the same booking session */
+.seat.taken {
+  background: #f59e0b;
+  border-color: #d97706;
+  color: #ffffff;
+  cursor: not-allowed;
+  box-shadow: none;
+  opacity: 0.85;
+}
+
+
 /* Seat Legend */
 .seat-legend {
   display: flex;
@@ -123,6 +134,12 @@
   background: var(--primary-color);
   border-color: var(--primary-color);
 }
+
+.legend-box.taken {
+  background: #f59e0b;
+  border-color: #d97706;
+}
+
 
 @keyframes selectPop {
   0% {
