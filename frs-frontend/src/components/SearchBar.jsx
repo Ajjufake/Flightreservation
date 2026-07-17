@@ -1,149 +1,158 @@
-import { useState, useEffect } from "react";
+import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { FaPlaneDeparture, FaPlaneArrival, FaSearch } from "react-icons/fa";
-import axios from "axios";
+import { FaPlaneDeparture, FaPlaneArrival, FaSearch, FaTimesCircle } from "react-icons/fa";
+import { CITIES } from "../constants/cities";
+
+function CityInput({ label, icon: Icon, value, onChange, placeholder, excludeCity }) {
+  const [open, setOpen] = useState(false);
+  const inputRef = useRef(null);
+
+  const filtered = CITIES.filter(
+    (city) =>
+      city !== excludeCity &&
+      city.toLowerCase().includes(value.toLowerCase())
+  );
+
+  return (
+    <div className="position-relative">
+      <label className="form-label fw-bold text-secondary d-flex align-items-center gap-2 mb-2">
+        <Icon style={{ color: "var(--secondary-color)" }} />
+        <span>{label}</span>
+      </label>
+      <div className="position-relative">
+        <input
+          ref={inputRef}
+          className="form-control shadow-sm border-0 bg-light"
+          placeholder={placeholder}
+          value={value}
+          onChange={(e) => {
+            onChange(e.target.value);
+            setOpen(true);
+          }}
+          onFocus={() => setOpen(true)}
+          onBlur={() => setTimeout(() => setOpen(false), 180)}
+          style={{ paddingLeft: "15px", paddingRight: value ? "36px" : "15px", height: "48px" }}
+          autoComplete="off"
+        />
+        {value && (
+          <button
+            className="btn btn-link position-absolute top-50 end-0 translate-middle-y pe-2 text-muted p-0"
+            style={{ zIndex: 5 }}
+            tabIndex={-1}
+            onMouseDown={(e) => { e.preventDefault(); onChange(""); inputRef.current?.focus(); }}
+          >
+            <FaTimesCircle size={14} />
+          </button>
+        )}
+      </div>
+
+      {open && (
+        <div
+          className="position-absolute w-100 shadow-sm rounded-3 bg-white border mt-1"
+          style={{ zIndex: 1050, top: "100%", left: 0, maxHeight: "220px", overflowY: "auto" }}
+        >
+          {filtered.length === 0 ? (
+            <div className="px-3 py-2 text-muted small">No matching cities</div>
+          ) : (
+            filtered.map((city) => (
+              <div
+                key={city}
+                className="px-3 py-2 dropdown-item-city"
+                style={{ cursor: "pointer", fontSize: "14px" }}
+                onMouseDown={() => {
+                  onChange(city);
+                  setOpen(false);
+                }}
+              >
+                {city}
+              </div>
+            ))
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
 
 function SearchBar() {
   const navigate = useNavigate();
   const [source, setSource] = useState("");
   const [destination, setDestination] = useState("");
-
-  const [sourcesList, setSourcesList] = useState([]);
-  const [destinationsList, setDestinationsList] = useState([]);
-  const [showSourceDropdown, setShowSourceDropdown] = useState(false);
-  const [showDestDropdown, setShowDestDropdown] = useState(false);
-
-  useEffect(() => {
-    // Fetch unique cities from the flight list
-    axios.get("http://localhost:8080/api/flights")
-      .then(res => {
-        const flights = res.data;
-        const uniqueSources = [...new Set(flights.map(f => f.source))];
-        const uniqueDests = [...new Set(flights.map(f => f.destination))];
-        setSourcesList(uniqueSources);
-        setDestinationsList(uniqueDests);
-      })
-      .catch(err => console.error(err));
-  }, []);
+  const [error, setError] = useState("");
 
   const search = () => {
     if (!source || !destination) {
-      alert("Please enter both departure and destination cities.");
+      setError("Please select both departure and destination cities.");
       return;
     }
-    navigate(`/search?source=${source}&destination=${destination}`);
+    if (source.trim().toLowerCase() === destination.trim().toLowerCase()) {
+      setError("Departure and destination cities cannot be the same.");
+      return;
+    }
+    setError("");
+    navigate(`/search?source=${encodeURIComponent(source)}&destination=${encodeURIComponent(destination)}`);
   };
 
   return (
-    <div 
-      className="card shadow-lg p-4 mt-5 position-relative overflow-visible" 
-      style={{ 
-        border: "1px solid rgba(255, 255, 255, 0.8)", 
-        background: "rgba(255, 255, 255, 0.9)", 
+    <div
+      className="card shadow-lg p-4 mt-5 position-relative overflow-visible"
+      style={{
+        border: "1px solid rgba(255,255,255,0.8)",
+        background: "rgba(255,255,255,0.92)",
         backdropFilter: "blur(10px)",
         borderRadius: "20px"
       }}
     >
-      <div className="position-absolute top-0 start-50 translate-middle badge bg-primary px-4 py-2 fs-6 shadow-sm" style={{ letterSpacing: "1px", background: "linear-gradient(135deg, var(--secondary-color) 0%, var(--primary-color) 100%)" }}>
+      <div
+        className="position-absolute top-0 start-50 translate-middle badge px-4 py-2 fs-6 shadow-sm"
+        style={{
+          letterSpacing: "1px",
+          background: "linear-gradient(135deg, var(--secondary-color) 0%, var(--primary-color) 100%)"
+        }}
+      >
         BOOK YOUR FLIGHT
       </div>
 
+      {error && (
+        <div className="alert alert-warning py-2 px-3 mt-2 mb-0 rounded-3" style={{ fontSize: "13px" }}>
+          {error}
+        </div>
+      )}
+
       <div className="row g-3 mt-2">
-        {/* Origin Input */}
-        <div className="col-md-5 position-relative">
-          <label className="form-label fw-bold text-secondary d-flex align-items-center gap-2 mb-2">
-            <FaPlaneDeparture style={{ color: "var(--secondary-color)" }} />
-            <span>Departure City</span>
-          </label>
-          <div className="input-group">
-            <input
-              className="form-control shadow-sm border-0 bg-light"
-              placeholder="e.g. New Delhi"
-              value={source}
-              onChange={(e) => {
-                setSource(e.target.value);
-                setShowSourceDropdown(true);
-              }}
-              onFocus={() => setShowSourceDropdown(true)}
-              onBlur={() => setTimeout(() => setShowSourceDropdown(false), 200)}
-              style={{ paddingLeft: "15px", height: "48px" }}
-            />
-          </div>
-          {showSourceDropdown && (
-            <div className="position-absolute w-100 shadow rounded-3 bg-white mt-1 border" style={{ zIndex: 1000, left: 0, top: "100%", maxHeight: "200px", overflowY: "auto" }}>
-              {sourcesList
-                .filter(city => city.toLowerCase().includes(source.toLowerCase()))
-                .map(city => (
-                  <div
-                    key={city}
-                    className="px-3 py-2 cursor-pointer dropdown-item-city"
-                    style={{ cursor: "pointer" }}
-                    onMouseDown={() => {
-                      setSource(city);
-                      setShowSourceDropdown(false);
-                    }}
-                  >
-                    {city}
-                  </div>
-                ))
-              }
-              {sourcesList.filter(city => city.toLowerCase().includes(source.toLowerCase())).length === 0 && (
-                <div className="px-3 py-2 text-muted small">No matching cities</div>
-              )}
-            </div>
-          )}
+        {/* Origin */}
+        <div className="col-md-5">
+          <CityInput
+            label="Departure City"
+            icon={FaPlaneDeparture}
+            value={source}
+            onChange={(v) => { setSource(v); setError(""); }}
+            placeholder="e.g. Delhi"
+            excludeCity={destination}
+          />
         </div>
 
-        {/* Destination Input */}
-        <div className="col-md-5 position-relative">
-          <label className="form-label fw-bold text-secondary d-flex align-items-center gap-2 mb-2">
-            <FaPlaneArrival style={{ color: "var(--secondary-color)" }} />
-            <span>Destination City</span>
-          </label>
-          <div className="input-group">
-            <input
-              className="form-control shadow-sm border-0 bg-light"
-              placeholder="e.g. Mumbai"
-              value={destination}
-              onChange={(e) => {
-                setDestination(e.target.value);
-                setShowDestDropdown(true);
-              }}
-              onFocus={() => setShowDestDropdown(true)}
-              onBlur={() => setTimeout(() => setShowDestDropdown(false), 200)}
-              style={{ paddingLeft: "15px", height: "48px" }}
-            />
-          </div>
-          {showDestDropdown && (
-            <div className="position-absolute w-100 shadow rounded-3 bg-white mt-1 border" style={{ zIndex: 1000, left: 0, top: "100%", maxHeight: "200px", overflowY: "auto" }}>
-              {destinationsList
-                .filter(city => city.toLowerCase().includes(destination.toLowerCase()))
-                .map(city => (
-                  <div
-                    key={city}
-                    className="px-3 py-2 cursor-pointer dropdown-item-city"
-                    style={{ cursor: "pointer" }}
-                    onMouseDown={() => {
-                      setDestination(city);
-                      setShowDestDropdown(false);
-                    }}
-                  >
-                    {city}
-                  </div>
-                ))
-              }
-              {destinationsList.filter(city => city.toLowerCase().includes(destination.toLowerCase())).length === 0 && (
-                <div className="px-3 py-2 text-muted small">No matching cities</div>
-              )}
-            </div>
-          )}
+        {/* Destination */}
+        <div className="col-md-5">
+          <CityInput
+            label="Destination City"
+            icon={FaPlaneArrival}
+            value={destination}
+            onChange={(v) => { setDestination(v); setError(""); }}
+            placeholder="e.g. Mumbai"
+            excludeCity={source}
+          />
         </div>
 
+        {/* Button */}
         <div className="col-md-2 d-flex align-items-end">
           <button
             className="btn btn-primary w-100 shadow-sm d-flex align-items-center justify-content-center gap-2"
             onClick={search}
-            style={{ height: "48px", background: "linear-gradient(135deg, var(--secondary-color) 0%, var(--primary-color) 100%)" }}
+            style={{
+              height: "48px",
+              background: "linear-gradient(135deg, var(--secondary-color) 0%, var(--primary-color) 100%)"
+            }}
           >
             <FaSearch />
             <span>Find</span>
