@@ -189,3 +189,16 @@ footer {
 .navbar-nav .nav-link:hover::after {
   width: 60%;
 }
+
+/* Autocomplete city dropdown styling */
+.dropdown-item-city {
+  padding: 10px 16px;
+  color: var(--text-dark);
+  font-weight: 500;
+  font-size: 14px;
+}
+
+.dropdown-item-city:hover {
+  background-color: var(--bg-color) !important;
+  color: var(--secondary-color) !important;
+}

@@ -15,6 +15,24 @@ function SearchFlights() {
   const [flights, setFlights] = useState([]);
   const [hasSearched, setHasSearched] = useState(false);
 
+  const [sourcesList, setSourcesList] = useState([]);
+  const [destinationsList, setDestinationsList] = useState([]);
+  const [showSourceDropdown, setShowSourceDropdown] = useState(false);
+  const [showDestDropdown, setShowDestDropdown] = useState(false);
+
+  useEffect(() => {
+    // Fetch unique cities from the flight list for autocomplete
+    axios.get("http://localhost:8080/api/flights")
+      .then(res => {
+        const flights = res.data;
+        const uniqueSources = [...new Set(flights.map(f => f.source))];
+        const uniqueDests = [...new Set(flights.map(f => f.destination))];
+        setSourcesList(uniqueSources);
+        setDestinationsList(uniqueDests);
+      })
+      .catch(err => console.error(err));
+  }, []);
+
   const handleChange = (e) => {
     setSearch({
       ...search,
@@ -81,13 +99,14 @@ function SearchFlights() {
       <div className="row">
         {/* Left Column - Search Inputs */}
         <div className="col-lg-4 mb-4">
-          <div className="card shadow-sm p-4" style={{ borderRadius: "16px", border: "1px solid var(--border-color)" }}>
+          <div className="card shadow-sm p-4" style={{ borderRadius: "16px", border: "1px solid var(--border-color)", overflow: "visible" }}>
             <h4 className="fw-bold mb-4 text-primary d-flex align-items-center gap-2">
               <FaSearch style={{ fontSize: "1.2rem" }} />
               <span>Search Parameters</span>
             </h4>
             
-            <div className="mb-3">
+            {/* Origin City */}
+            <div className="mb-3 position-relative">
               <label className="form-label fw-semibold text-secondary d-flex align-items-center gap-2">
                 <FaMapMarkerAlt />
                 <span>Origin</span>
@@ -97,11 +116,40 @@ function SearchFlights() {
                 placeholder="Departure city"
                 name="source"
                 value={search.source}
-                onChange={handleChange}
+                onChange={(e) => {
+                  setSearch(prev => ({ ...prev, source: e.target.value }));
+                  setShowSourceDropdown(true);
+                }}
+                onFocus={() => setShowSourceDropdown(true)}
+                onBlur={() => setTimeout(() => setShowSourceDropdown(false), 200)}
               />
+              {showSourceDropdown && (
+                <div className="position-absolute w-100 shadow rounded-3 bg-white mt-1 border" style={{ zIndex: 1000, left: 0, top: "100%", maxHeight: "150px", overflowY: "auto" }}>
+                  {sourcesList
+                    .filter(city => city.toLowerCase().includes(search.source.toLowerCase()))
+                    .map(city => (
+                      <div
+                        key={city}
+                        className="px-3 py-2 cursor-pointer dropdown-item-city"
+                        style={{ cursor: "pointer" }}
+                        onMouseDown={() => {
+                          setSearch(prev => ({ ...prev, source: city }));
+                          setShowSourceDropdown(false);
+                        }}
+                      >
+                        {city}
+                      </div>
+                    ))
+                  }
+                  {sourcesList.filter(city => city.toLowerCase().includes(search.source.toLowerCase())).length === 0 && (
+                    <div className="px-3 py-2 text-muted small">No matching cities</div>
+                  )}
+                </div>
+              )}
             </div>
 
-            <div className="mb-3">
+            {/* Destination City */}
+            <div className="mb-3 position-relative">
               <label className="form-label fw-semibold text-secondary d-flex align-items-center gap-2">
                 <FaMapMarkerAlt />
                 <span>Destination</span>
@@ -111,8 +159,36 @@ function SearchFlights() {
                 placeholder="Arrival city"
                 name="destination"
                 value={search.destination}
-                onChange={handleChange}
+                onChange={(e) => {
+                  setSearch(prev => ({ ...prev, destination: e.target.value }));
+                  setShowDestDropdown(true);
+                }}
+                onFocus={() => setShowDestDropdown(true)}
+                onBlur={() => setTimeout(() => setShowDestDropdown(false), 200)}
               />
+              {showDestDropdown && (
+                <div className="position-absolute w-100 shadow rounded-3 bg-white mt-1 border" style={{ zIndex: 1000, left: 0, top: "100%", maxHeight: "150px", overflowY: "auto" }}>
+                  {destinationsList
+                    .filter(city => city.toLowerCase().includes(search.destination.toLowerCase()))
+                    .map(city => (
+                      <div
+                        key={city}
+                        className="px-3 py-2 cursor-pointer dropdown-item-city"
+                        style={{ cursor: "pointer" }}
+                        onMouseDown={() => {
+                          setSearch(prev => ({ ...prev, destination: city }));
+                          setShowDestDropdown(false);
+                        }}
+                      >
+                        {city}
+                      </div>
+                    ))
+                  }
+                  {destinationsList.filter(city => city.toLowerCase().includes(search.destination.toLowerCase())).length === 0 && (
+                    <div className="px-3 py-2 text-muted small">No matching cities</div>
+                  )}
+                </div>
+              )}
             </div>
 
             <div className="mb-4">
