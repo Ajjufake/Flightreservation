@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import axios from "axios";
 import { useNavigate, Link } from "react-router-dom";
 import { FaEnvelope, FaLock, FaUser, FaPhone, FaPlaneDeparture } from "react-icons/fa";
@@ -6,6 +6,13 @@ import "../styles/login.css";
 
 function Register() {
   const navigate = useNavigate();
+
+  // Redirect if already logged in
+  useEffect(() => {
+    if (localStorage.getItem("token")) {
+      navigate("/", { replace: true });
+    }
+  }, [navigate]);
 
   const [user, setUser] = useState({
     fullName: "",

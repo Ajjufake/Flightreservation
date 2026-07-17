@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { login } from "../services/AuthService";
 import { Link, useNavigate } from "react-router-dom";
 import { FaEnvelope, FaLock, FaPlaneDeparture } from "react-icons/fa";
@@ -12,6 +12,13 @@ function Login() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  // If already logged in, redirect to homepage immediately
+  useEffect(() => {
+    if (localStorage.getItem("token")) {
+      navigate("/", { replace: true });
+    }
+  }, [navigate]);
+
   const loginUser = async () => {
     if (!email || !password) {
       setError("Please enter both email and password.");
@@ -24,8 +31,9 @@ function Login() {
       localStorage.setItem("token", response.token);
       localStorage.setItem("userEmail", email);
       setLoading(false);
+      // Navigate and reload so Navbar & Hero pick up the new auth state
       navigate("/");
-      window.location.reload();
+      window.location.replace("/");
     } catch (err) {
       setLoading(false);
       setError("Invalid email or password. Please try again.");
