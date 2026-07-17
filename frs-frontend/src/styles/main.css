@@ -1,0 +1,27 @@
+body{
+
+background:#f4f8fc;
+
+font-family:'Segoe UI',sans-serif;
+
+}
+
+.card{
+
+transition:.3s;
+
+}
+
+.card:hover{
+
+transform:translateY(-8px);
+
+box-shadow:0 15px 35px rgba(0,0,0,.2);
+
+}
+
+.badge{
+
+font-size:14px;
+
+}

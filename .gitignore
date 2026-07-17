@@ -1,0 +1,14 @@
+# Local database directory
+mysql-data/
+
+# IDE files
+.idea/
+.vscode/
+*.suo
+*.ntvsca
+*.njsproj
+*.sln
+*.sw?
+
+# Log files
+*.log

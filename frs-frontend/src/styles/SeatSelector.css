@@ -1,0 +1,30 @@
+.seat-row{
+    display:flex;
+    gap:10px;
+    margin-bottom:10px;
+}
+
+.seat{
+    width:55px;
+    height:55px;
+    border:none;
+    border-radius:12px;
+    background:#dfe8ff;
+    transition:.3s;
+    font-weight:bold;
+}
+
+.seat:hover{
+    background:#8bb1ff;
+}
+
+.selected{
+    background:#1e63ff;
+    color:white;
+}
+
+.booked{
+    background:#ff5b5b;
+    color:white;
+    cursor:not-allowed;
+}
