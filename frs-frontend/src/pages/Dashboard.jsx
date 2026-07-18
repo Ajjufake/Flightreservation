@@ -133,7 +133,7 @@ function Dashboard() {
         </div>
       </div>
 
-      <h3 className="fw-bold mb-4 text-white">Travel Dashboard</h3>
+      <h3 className="fw-bold mb-4 text-slate">Travel Dashboard</h3>
 
       {/* Stat cards */}
       <div className="row g-4 mb-5">
@@ -143,7 +143,7 @@ function Dashboard() {
               <div className="d-flex justify-content-between align-items-start mb-3">
                 <div>
                   <span className="text-muted small fw-semibold text-uppercase">{s.label}</span>
-                  <h2 className="fw-bold text-white mt-2 mb-0" style={s.valueStyle}>{s.value}</h2>
+                  <h2 className="fw-bold text-slate mt-2 mb-0" style={s.valueStyle}>{s.value}</h2>
                 </div>
                 <div className="p-3 rounded-3" style={{ background: s.iconBg, color: s.iconColor }}>
                   {s.icon}
@@ -159,7 +159,7 @@ function Dashboard() {
       {recentBookings.length > 0 && (
         <>
           <div className="d-flex justify-content-between align-items-center mb-3">
-            <h5 className="fw-bold mb-0 text-white">Recent Bookings</h5>
+            <h5 className="fw-bold mb-0 text-slate">Recent Bookings</h5>
             <Link to="/mybookings" className="btn btn-outline-primary btn-sm px-3 py-1 d-inline-flex align-items-center gap-1" style={{ borderRadius: "10px" }}>
               View all <FaArrowRight size={11} />
             </Link>
@@ -179,10 +179,10 @@ function Dashboard() {
                 <tbody>
                   {recentBookings.map((b) => (
                     <tr key={b.id}>
-                      <td><span className="fw-bold text-white font-monospace">{b.bookingId}</span></td>
-                      <td className="text-white fw-semibold">{b.passengerName}</td>
+                      <td><span className="fw-bold text-slate font-monospace">{b.bookingId}</span></td>
+                      <td className="text-slate fw-semibold">{b.passengerName}</td>
                       <td>
-                        <span className="fw-bold text-white">{b.flight?.airline}</span>
+                        <span className="fw-bold text-slate">{b.flight?.airline}</span>
                         <small className="text-muted d-block">{b.flight?.source} → {b.flight?.destination}</small>
                       </td>
                       <td>
