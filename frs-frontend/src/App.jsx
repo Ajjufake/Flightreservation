@@ -8,6 +8,9 @@ import SearchFlights from "./pages/SearchFlights";
 import Booking from "./pages/Booking";
 import MyBookings from "./pages/MyBookings";
 import AdminFlights from "./pages/AdminFlights";
+import AdminDashboard from "./pages/AdminDashboard";
+import AdminUsers from "./pages/AdminUsers";
+import AdminBookings from "./pages/AdminBookings";
 import Navbar from "./components/Navbar";
 import Dashboard from "./pages/Dashboard";
 
@@ -19,6 +22,15 @@ function GuestRoute({ element }) {
 // Redirects unauthenticated users to Login for protected pages
 function ProtectedRoute({ element }) {
   return localStorage.getItem("token") ? element : <Navigate to="/login" replace />;
+}
+
+// Redirects non-admin users away from admin pages
+function AdminRoute({ element }) {
+  const token = localStorage.getItem("token");
+  const role = localStorage.getItem("userRole");
+  if (!token) return <Navigate to="/login" replace />;
+  if (role !== "ADMIN") return <Navigate to="/" replace />;
+  return element;
 }
 
 function App() {
@@ -36,11 +48,16 @@ function App() {
         <Route path="/login" element={<GuestRoute element={<Login />} />} />
         <Route path="/register" element={<GuestRoute element={<Register />} />} />
 
-        {/* Protected: redirect to login if not authenticated */}
+        {/* User-protected routes */}
         <Route path="/booking" element={<ProtectedRoute element={<Booking />} />} />
         <Route path="/mybookings" element={<ProtectedRoute element={<MyBookings />} />} />
-        <Route path="/admin" element={<ProtectedRoute element={<AdminFlights />} />} />
         <Route path="/dashboard" element={<ProtectedRoute element={<Dashboard />} />} />
+
+        {/* Admin-only routes */}
+        <Route path="/admin" element={<AdminRoute element={<AdminFlights />} />} />
+        <Route path="/admin/dashboard" element={<AdminRoute element={<AdminDashboard />} />} />
+        <Route path="/admin/users" element={<AdminRoute element={<AdminUsers />} />} />
+        <Route path="/admin/bookings" element={<AdminRoute element={<AdminBookings />} />} />
 
         {/* Fallback */}
         <Route path="*" element={<Navigate to="/" replace />} />

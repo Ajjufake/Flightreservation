@@ -4,7 +4,9 @@ import { useSearchParams, useNavigate } from "react-router-dom";
 import SeatSelector from "../components/SeatSelector";
 import {
   FaPlane, FaCalendarAlt, FaClock, FaUser,
-  FaChevronRight, FaPlus, FaTrash, FaChevronDown, FaChevronUp
+  FaChevronRight, FaPlus, FaTrash, FaChevronDown, FaChevronUp,
+  FaCreditCard, FaMobileAlt, FaUniversity, FaShieldAlt, FaCheckCircle,
+  FaLock, FaCheck
 } from "react-icons/fa";
 import "../styles/booking.css";
 
@@ -25,6 +27,19 @@ export default function Booking() {
   const [passengers, setPassengers] = useState([newPassenger()]);
   // Which passenger's seat grid is currently open
   const [activeSeatFor, setActiveSeatFor] = useState(0);
+
+  // Payment states
+  const [paymentMethod, setPaymentMethod] = useState("CARD");
+  const [cardNumber, setCardNumber] = useState("");
+  const [cardHolder, setCardHolder] = useState("");
+  const [cardExpiry, setCardExpiry] = useState("");
+  const [cardCvv, setCardCvv] = useState("");
+  const [upiId, setUpiId] = useState("");
+  const [selectedBank, setSelectedBank] = useState("");
+
+  // Payment simulation overlay states
+  const [showPaymentOverlay, setShowPaymentOverlay] = useState(false);
+  const [paymentStep, setPaymentStep] = useState(0); // 0 = Verifying, 1 = Processing, 2 = Success
 
   useEffect(() => {
     // Fetch booked seats from DB
@@ -56,9 +71,6 @@ export default function Booking() {
     }
   }, [flightId]);
 
-  // All seats currently picked by any passenger in this session
-  const sessionSeats = passengers.map(p => p.seatNumber).filter(Boolean);
-
   const updatePassenger = (index, field, value) => {
     setPassengers(prev => {
       const copy = [...prev];
@@ -80,6 +92,27 @@ export default function Booking() {
   };
 
   const totalFare = flight ? flight.price * passengers.length : 0;
+
+  // Format card number as 1111 2222 3333 4444
+  const handleCardNumberChange = (e) => {
+    const val = e.target.value.replace(/\D/g, "").substring(0, 16);
+    const formatted = val.replace(/(.{4})/g, "$1 ").trim();
+    setCardNumber(formatted);
+  };
+
+  // Format expiry as MM/YY
+  const handleCardExpiryChange = (e) => {
+    let val = e.target.value.replace(/\D/g, "").substring(0, 4);
+    if (val.length >= 2) {
+      val = val.substring(0, 2) + "/" + val.substring(2);
+    }
+    setCardExpiry(val);
+  };
+
+  const handleCardCvvChange = (e) => {
+    const val = e.target.value.replace(/\D/g, "").substring(0, 3);
+    setCardCvv(val);
+  };
 
   const handleSubmit = async () => {
     if (!currentUser) {
@@ -103,25 +136,69 @@ export default function Booking() {
       return;
     }
 
-    setError("");
-    setSubmitting(true);
-
-    const token = localStorage.getItem("token");
-    try {
-      // Book each passenger sequentially
-      for (const p of passengers) {
-        await axios.post(
-          `http://localhost:8080/api/bookings/book?userId=${currentUser.id}&flightId=${flightId}`,
-          p,
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
+    // Validate Payment details
+    if (paymentMethod === "CARD") {
+      if (cardNumber.replace(/\s/g, "").length !== 16) {
+        setError("Please enter a valid 16-digit Card Number.");
+        return;
       }
-      setSubmitting(false);
-      navigate("/mybookings");
-    } catch (err) {
-      setSubmitting(false);
-      setError(err.response?.data || "Booking failed. Please try again.");
+      if (!cardHolder.trim()) {
+        setError("Please enter the Cardholder Name.");
+        return;
+      }
+      if (cardExpiry.length !== 5) {
+        setError("Please enter Expiry Date (MM/YY).");
+        return;
+      }
+      if (cardCvv.length !== 3) {
+        setError("Please enter a valid 3-digit CVV.");
+        return;
+      }
+    } else if (paymentMethod === "UPI") {
+      if (!upiId.trim() || !upiId.includes("@")) {
+        setError("Please enter a valid UPI ID (e.g., user@bank).");
+        return;
+      }
+    } else if (paymentMethod === "NETBANK") {
+      if (!selectedBank) {
+        setError("Please select your bank for Net Banking.");
+        return;
+      }
     }
+
+    setError("");
+    setShowPaymentOverlay(true);
+    setPaymentStep(0);
+
+    // Simulate payment steps
+    setTimeout(() => {
+      setPaymentStep(1); // Processing Transaction
+      setTimeout(() => {
+        setPaymentStep(2); // Success / Finalizing Booking
+        setTimeout(async () => {
+          const token = localStorage.getItem("token");
+          try {
+            // Book each passenger sequentially with payment details
+            for (const p of passengers) {
+              const bookingData = {
+                ...p,
+                paymentMethod: paymentMethod === "CARD" ? "Card" : paymentMethod === "UPI" ? "UPI" : "Net Banking"
+              };
+              await axios.post(
+                `http://localhost:8080/api/bookings/book?userId=${currentUser.id}&flightId=${flightId}`,
+                bookingData,
+                { headers: { Authorization: `Bearer ${token}` } }
+              );
+            }
+            setShowPaymentOverlay(false);
+            navigate("/mybookings");
+          } catch (err) {
+            setShowPaymentOverlay(false);
+            setError(err.response?.data || "Booking failed. Please try again.");
+          }
+        }, 1500);
+      }, 2000);
+    }, 1500);
   };
 
   return (
@@ -131,7 +208,7 @@ export default function Booking() {
 
           {/* ── Flight Summary Sidebar ── */}
           <div className="col-lg-4">
-            <div className="card border-0 p-4 shadow-sm" style={{ borderRadius: "16px", position: "sticky", top: "20px" }}>
+            <div className="card border-0 p-4 shadow-sm card-no-hover" style={{ borderRadius: "16px", position: "sticky", top: "20px" }}>
               <h4 className="fw-bold mb-4 text-primary d-flex align-items-center gap-2">
                 <FaPlane style={{ transform: "rotate(45deg)", color: "var(--accent-color)" }} />
                 <span>Flight Details</span>
@@ -162,7 +239,7 @@ export default function Booking() {
                         <FaClock size={11} className="me-1" />{flight.departureTime?.substring(0, 5)}
                       </strong>
                     </div>
-                    <div className="text-end">
+                    <div>
                       <span>Arrival</span>
                       <strong className="d-block text-dark mt-1">
                         <FaClock size={11} className="me-1" />{flight.arrivalTime?.substring(0, 5)}
@@ -178,7 +255,7 @@ export default function Booking() {
                       <span className="fw-bold text-dark">₹{flight.price.toLocaleString("en-IN")}</span>
                     </div>
                     <div className="text-muted small">×</div>
-                    <div className="text-center">
+                    <div>
                       <span className="text-muted small d-block">Passengers</span>
                       <span className="fw-bold text-dark">{passengers.length}</span>
                     </div>
@@ -191,6 +268,11 @@ export default function Booking() {
                     <span className="text-white fw-semibold">Total Fare</span>
                     <span className="text-white fw-bold fs-4">₹{totalFare.toLocaleString("en-IN")}</span>
                   </div>
+
+                  <div className="d-flex align-items-center justify-content-center gap-2 mt-4 text-muted small">
+                    <FaShieldAlt size={12} className="text-success" />
+                    <span>Secure Checkout • 256-bit SSL</span>
+                  </div>
                 </>
               ) : (
                 <div className="text-center py-4 text-muted">Loading flight details...</div>
@@ -198,7 +280,7 @@ export default function Booking() {
             </div>
           </div>
 
-          {/* ── Passenger Forms ── */}
+          {/* ── Passenger & Payment Forms ── */}
           <div className="col-lg-8">
 
             <div className="d-flex justify-content-between align-items-center mb-3">
@@ -226,7 +308,6 @@ export default function Booking() {
 
             <div className="d-flex flex-column gap-3">
               {passengers.map((p, idx) => {
-                // Seats taken by OTHER passengers (not this one)
                 const takenByOthers = passengers
                   .filter((_, i) => i !== idx)
                   .map(pp => pp.seatNumber)
@@ -237,10 +318,9 @@ export default function Booking() {
                 return (
                   <div
                     key={idx}
-                    className="card border-0 shadow-sm"
+                    className="card border-0 shadow-sm card-no-hover"
                     style={{ borderRadius: "16px", overflow: "hidden" }}
                   >
-                    {/* Passenger header */}
                     <div
                       className="d-flex justify-content-between align-items-center px-4 py-3"
                       style={{ background: "var(--primary-color)", color: "#fff" }}
@@ -270,7 +350,6 @@ export default function Booking() {
                     </div>
 
                     <div className="p-4">
-                      {/* Fields */}
                       <div className="row g-3 mb-4">
                         <div className="col-md-6">
                           <label className="form-label fw-semibold text-secondary small">Full Name</label>
@@ -308,7 +387,6 @@ export default function Booking() {
                         </div>
                       </div>
 
-                      {/* Seat selection toggle */}
                       <button
                         className="btn btn-light w-100 d-flex justify-content-between align-items-center px-4 py-2 mb-3 fw-semibold"
                         style={{ borderRadius: "10px", border: "1px solid var(--border-color)" }}
@@ -327,7 +405,7 @@ export default function Booking() {
                           selectedSeat={p.seatNumber}
                           setSelectedSeat={(seat) => {
                             updatePassenger(idx, "seatNumber", seat);
-                            setActiveSeatFor(-1); // auto-close after picking
+                            setActiveSeatFor(-1);
                           }}
                           bookedSeats={bookedSeats}
                           takenByOthers={takenByOthers}
@@ -339,29 +417,226 @@ export default function Booking() {
               })}
             </div>
 
-            {/* ── Submit ── */}
-            <div className="mt-4 pt-3 d-flex justify-content-between align-items-center border-top">
+            {/* ── Payment Method Section ── */}
+            <h3 className="fw-bold mt-5 mb-3 d-flex align-items-center gap-2 text-dark">
+              <FaCreditCard style={{ color: "var(--secondary-color)" }} />
+              <span>Select Payment Method</span>
+            </h3>
+
+            <div className="card border-0 shadow-sm p-4 card-no-hover" style={{ borderRadius: "16px" }}>
+              <div className="d-flex gap-3 mb-4 flex-wrap">
+                <button
+                  className={`btn d-flex align-items-center gap-2 px-4 py-2.5 fw-semibold ${paymentMethod === "CARD" ? "btn-primary" : "btn-light"}`}
+                  style={{ borderRadius: "10px", border: paymentMethod === "CARD" ? "none" : "1px solid var(--border-color)" }}
+                  onClick={() => setPaymentMethod("CARD")}
+                >
+                  <FaCreditCard /> Credit / Debit Card
+                </button>
+                <button
+                  className={`btn d-flex align-items-center gap-2 px-4 py-2.5 fw-semibold ${paymentMethod === "UPI" ? "btn-primary" : "btn-light"}`}
+                  style={{ borderRadius: "10px", border: paymentMethod === "UPI" ? "none" : "1px solid var(--border-color)" }}
+                  onClick={() => setPaymentMethod("UPI")}
+                >
+                  <FaMobileAlt /> UPI Pay
+                </button>
+                <button
+                  className={`btn d-flex align-items-center gap-2 px-4 py-2.5 fw-semibold ${paymentMethod === "NETBANK" ? "btn-primary" : "btn-light"}`}
+                  style={{ borderRadius: "10px", border: paymentMethod === "NETBANK" ? "none" : "1px solid var(--border-color)" }}
+                  onClick={() => setPaymentMethod("NETBANK")}
+                >
+                  <FaUniversity /> Net Banking
+                </button>
+              </div>
+
+              {/* CARD DETAILS */}
+              {paymentMethod === "CARD" && (
+                <div className="row g-3">
+                  <div className="col-12 col-md-7">
+                    <div className="mb-3">
+                      <label className="form-label fw-semibold text-secondary small">Card Number</label>
+                      <input
+                        className="form-control"
+                        placeholder="4111 2222 3333 4444"
+                        value={cardNumber}
+                        onChange={handleCardNumberChange}
+                      />
+                    </div>
+                    <div className="mb-3">
+                      <label className="form-label fw-semibold text-secondary small">Cardholder Name</label>
+                      <input
+                        className="form-control"
+                        placeholder="John Doe"
+                        value={cardHolder}
+                        onChange={(e) => setCardHolder(e.target.value)}
+                      />
+                    </div>
+                    <div className="row">
+                      <div className="col-6">
+                        <label className="form-label fw-semibold text-secondary small">Expiry Date</label>
+                        <input
+                          className="form-control"
+                          placeholder="MM/YY"
+                          value={cardExpiry}
+                          onChange={handleCardExpiryChange}
+                        />
+                      </div>
+                      <div className="col-6">
+                        <label className="form-label fw-semibold text-secondary small">CVV</label>
+                        <input
+                          type="password"
+                          className="form-control"
+                          placeholder="123"
+                          value={cardCvv}
+                          onChange={handleCardCvvChange}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Elegant virtual card visual preview */}
+                  <div className="col-12 col-md-5 d-flex align-items-center justify-content-center">
+                    <div
+                      style={{
+                        background: "linear-gradient(135deg, #0b192c 0%, #1e3e62 100%)",
+                        borderRadius: "16px",
+                        width: "280px",
+                        height: "170px",
+                        padding: "20px",
+                        color: "white",
+                        boxShadow: "0 10px 25px rgba(0,0,0,0.15)",
+                        display: "flex",
+                        flexDirection: "column",
+                        justifyContent: "space-between",
+                        border: "1px solid rgba(255,255,255,0.1)"
+                      }}
+                    >
+                      <div className="d-flex justify-content-between align-items-center">
+                        <span className="small text-white-50 fw-semibold">AEROGLIDE PLATINUM</span>
+                        <FaPlane style={{ color: "var(--accent-color)" }} />
+                      </div>
+                      <div className="fs-5 fw-bold font-monospace mt-3" style={{ letterSpacing: "1.5px" }}>
+                        {cardNumber || "•••• •••• •••• ••••"}
+                      </div>
+                      <div className="d-flex justify-content-between align-items-end mt-2">
+                        <div>
+                          <span style={{ fontSize: "9px" }} className="text-white-50 d-block">CARD HOLDER</span>
+                          <span className="text-uppercase fw-semibold" style={{ fontSize: "12px" }}>{cardHolder || "YOUR NAME"}</span>
+                        </div>
+                        <div>
+                          <span style={{ fontSize: "9px" }} className="text-white-50 d-block">EXPIRES</span>
+                          <span className="fw-semibold" style={{ fontSize: "12px" }}>{cardExpiry || "MM/YY"}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* UPI DETAILS */}
+              {paymentMethod === "UPI" && (
+                <div>
+                  <div className="mb-3" style={{ maxWidth: "450px" }}>
+                    <label className="form-label fw-semibold text-secondary small">UPI ID</label>
+                    <input
+                      className="form-control"
+                      placeholder="username@bank"
+                      value={upiId}
+                      onChange={(e) => setUpiId(e.target.value)}
+                    />
+                  </div>
+                  <div className="p-3 bg-light rounded-3 d-flex align-items-center gap-3 border small text-muted">
+                    <span style={{ fontSize: "1.5rem" }}>📱</span>
+                    <span>A push request will be sent to your UPI app. Please approve the request to finalize the reservation.</span>
+                  </div>
+                </div>
+              )}
+
+              {/* NET BANKING DETAILS */}
+              {paymentMethod === "NETBANK" && (
+                <div style={{ maxWidth: "450px" }}>
+                  <label className="form-label fw-semibold text-secondary small">Select Bank</label>
+                  <select
+                    className="form-control"
+                    value={selectedBank}
+                    onChange={(e) => setSelectedBank(e.target.value)}
+                  >
+                    <option value="">Choose a bank...</option>
+                    <option value="SBI">State Bank of India (SBI)</option>
+                    <option value="HDFC">HDFC Bank</option>
+                    <option value="ICICI">ICICI Bank</option>
+                    <option value="AXIS">Axis Bank</option>
+                    <option value="KOTAK">Kotak Mahindra Bank</option>
+                  </select>
+                </div>
+              )}
+            </div>
+
+            {/* ── Submit Row ── */}
+            <div className="mt-5 pt-3 d-flex justify-content-between align-items-center border-top">
               <div className="text-muted small">
                 {passengers.length} passenger{passengers.length > 1 ? "s" : ""} &nbsp;·&nbsp;
                 Total: <strong className="text-dark">₹{totalFare.toLocaleString("en-IN")}</strong>
               </div>
               <button
-                className="btn btn-primary px-5 py-3 fw-bold"
+                className="btn btn-primary px-5 py-3 fw-bold d-flex align-items-center gap-2"
                 style={{ borderRadius: "12px" }}
                 onClick={handleSubmit}
                 disabled={submitting}
               >
-                {submitting ? (
-                  <><span className="spinner-border spinner-border-sm me-2" />Booking...</>
-                ) : (
-                  `Confirm ${passengers.length > 1 ? `${passengers.length} Bookings` : "Booking"}`
-                )}
+                <FaLock size={12} className="text-white-50" />
+                <span>Pay & Confirm Booking</span>
               </button>
             </div>
 
           </div>
         </div>
       </div>
+
+      {/* ── Payment Process Simulation Overlay ── */}
+      {showPaymentOverlay && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(11, 25, 44, 0.85)",
+            backdropFilter: "blur(8px)",
+            zIndex: 999999,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            color: "white"
+          }}
+        >
+          <div
+            className="text-center p-5 card shadow-lg border-0"
+            style={{ maxWidth: "420px", background: "white", color: "#0b192c", borderRadius: "24px" }}
+          >
+            {paymentStep === 0 && (
+              <div>
+                <div className="spinner-border text-primary mb-4" style={{ width: "3.5rem", height: "3.5rem" }} role="status" />
+                <h5 className="fw-bold mb-2">Verifying Payment</h5>
+                <p className="text-muted small mb-0">Establishing secure connection to payment gateway...</p>
+              </div>
+            )}
+            {paymentStep === 1 && (
+              <div>
+                <div className="spinner-border text-warning mb-4" style={{ width: "3.5rem", height: "3.5rem" }} role="status" />
+                <h5 className="fw-bold mb-2">Processing Transaction</h5>
+                <p className="text-muted small mb-0">Authorizing amount of <strong>₹{totalFare.toLocaleString("en-IN")}</strong> with your financial institution...</p>
+              </div>
+            )}
+            {paymentStep === 2 && (
+              <div>
+                <div className="text-success mb-4 animate__animated animate__bounceIn">
+                  <FaCheckCircle size={60} />
+                </div>
+                <h5 className="fw-bold text-success mb-2">Payment Successful!</h5>
+                <p className="text-muted small mb-0">Seat allocations confirmed. Finalizing your ticket reservation...</p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

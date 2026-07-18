@@ -1,84 +1,163 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { FaPlaneDeparture, FaPlaneArrival, FaSearch, FaTimesCircle } from "react-icons/fa";
+import { createPortal } from "react-dom";
+import { FaPlaneDeparture, FaPlaneArrival, FaSearch, FaTimesCircle, FaExchangeAlt, FaCalendarAlt } from "react-icons/fa";
 import { CITIES } from "../constants/cities";
 
-function CityInput({ label, icon: Icon, value, onChange, placeholder, excludeCity }) {
+/* ─── Portal Dropdown ─────────────────────────────────────────────────────── */
+// Renders outside the card DOM tree to avoid any overflow/z-index clipping.
+function CityDropdown({ anchorRef, open, cities, onSelect }) {
+  const [rect, setRect] = useState(null);
+
+  useEffect(() => {
+    if (!open || !anchorRef.current) return;
+    const updateRect = () => {
+      const r = anchorRef.current.getBoundingClientRect();
+      setRect({ top: r.bottom + window.scrollY + 4, left: r.left + window.scrollX, width: r.width });
+    };
+    updateRect();
+    window.addEventListener("scroll", updateRect, true);
+    window.addEventListener("resize", updateRect);
+    return () => {
+      window.removeEventListener("scroll", updateRect, true);
+      window.removeEventListener("resize", updateRect);
+    };
+  }, [open, anchorRef]);
+
+  if (!open || !rect || cities.length === 0) return null;
+
+  return createPortal(
+    <div
+      style={{
+        position: "absolute",
+        top: rect.top,
+        left: rect.left,
+        width: rect.width,
+        background: "#ffffff",
+        border: "1px solid #e2e8f0",
+        borderRadius: "12px",
+        boxShadow: "0 10px 40px rgba(0,0,0,0.12)",
+        zIndex: 99999,
+        maxHeight: "230px",
+        overflowY: "auto",
+      }}
+    >
+      {cities.map((city) => (
+        <div
+          key={city}
+          style={{
+            padding: "10px 16px",
+            cursor: "pointer",
+            fontSize: "14px",
+            fontWeight: 500,
+            color: "#1e3e62",
+            transition: "background 0.15s",
+          }}
+          onMouseDown={(e) => { e.preventDefault(); onSelect(city); }}
+          onMouseEnter={(e) => (e.currentTarget.style.background = "#f0f6ff")}
+          onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+        >
+          ✈ {city}
+        </div>
+      ))}
+    </div>,
+    document.body
+  );
+}
+
+/* ─── City Input ──────────────────────────────────────────────────────────── */
+function CityInput({ label, icon: Icon, value, onChange, placeholder, excludeCity, accent }) {
   const [open, setOpen] = useState(false);
-  const inputRef = useRef(null);
+  const wrapRef = useRef(null);
 
   const filtered = CITIES.filter(
-    (city) =>
-      city !== excludeCity &&
-      city.toLowerCase().includes(value.toLowerCase())
+    (c) => c !== excludeCity && c.toLowerCase().includes(value.toLowerCase())
   );
 
   return (
-    <div className="position-relative">
-      <label className="form-label fw-bold text-secondary d-flex align-items-center gap-2 mb-2">
-        <Icon style={{ color: "var(--secondary-color)" }} />
-        <span>{label}</span>
+    <div ref={wrapRef} style={{ flex: 1, minWidth: 0, position: "relative" }}>
+      <label
+        style={{
+          fontSize: "11px",
+          fontWeight: 700,
+          letterSpacing: "0.8px",
+          color: "#94a3b8",
+          textTransform: "uppercase",
+          marginBottom: "8px",
+          display: "flex",
+          alignItems: "center",
+          gap: "6px",
+        }}
+      >
+        <Icon size={11} style={{ color: accent }} />
+        {label}
       </label>
-      <div className="position-relative">
+
+      <div style={{ position: "relative" }}>
         <input
-          ref={inputRef}
-          className="form-control shadow-sm border-0 bg-light"
+          className="city-input"
           placeholder={placeholder}
           value={value}
-          onChange={(e) => {
-            onChange(e.target.value);
-            setOpen(true);
-          }}
+          onChange={(e) => { onChange(e.target.value); setOpen(true); }}
           onFocus={() => setOpen(true)}
           onBlur={() => setTimeout(() => setOpen(false), 180)}
-          style={{ paddingLeft: "15px", paddingRight: value ? "36px" : "15px", height: "48px" }}
           autoComplete="off"
+          style={{
+            width: "100%",
+            height: "54px",
+            border: "none",
+            borderBottom: `2px solid ${open ? accent : "#e2e8f0"}`,
+            borderRadius: 0,
+            outline: "none",
+            background: "transparent",
+            fontSize: "18px",
+            fontWeight: 700,
+            color: "#0f172a",
+            padding: "0 36px 0 0",
+            transition: "border-color 0.2s ease",
+            fontFamily: "inherit",
+          }}
         />
         {value && (
           <button
-            className="btn btn-link position-absolute top-50 end-0 translate-middle-y pe-2 text-muted p-0"
-            style={{ zIndex: 5 }}
             tabIndex={-1}
-            onMouseDown={(e) => { e.preventDefault(); onChange(""); inputRef.current?.focus(); }}
+            onMouseDown={(e) => { e.preventDefault(); onChange(""); }}
+            style={{
+              position: "absolute",
+              right: 0,
+              top: "50%",
+              transform: "translateY(-50%)",
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+              color: "#94a3b8",
+              padding: "4px",
+            }}
           >
             <FaTimesCircle size={14} />
           </button>
         )}
       </div>
 
-      {open && (
-        <div
-          className="position-absolute w-100 shadow-sm rounded-3 bg-white border mt-1"
-          style={{ zIndex: 1050, top: "100%", left: 0, maxHeight: "220px", overflowY: "auto" }}
-        >
-          {filtered.length === 0 ? (
-            <div className="px-3 py-2 text-muted small">No matching cities</div>
-          ) : (
-            filtered.map((city) => (
-              <div
-                key={city}
-                className="px-3 py-2 dropdown-item-city"
-                style={{ cursor: "pointer", fontSize: "14px" }}
-                onMouseDown={() => {
-                  onChange(city);
-                  setOpen(false);
-                }}
-              >
-                {city}
-              </div>
-            ))
-          )}
-        </div>
-      )}
+      <CityDropdown
+        anchorRef={wrapRef}
+        open={open && filtered.length > 0}
+        cities={filtered}
+        onSelect={(city) => { onChange(city); setOpen(false); }}
+      />
     </div>
   );
 }
 
+/* ─── Main SearchBar ──────────────────────────────────────────────────────── */
 function SearchBar() {
   const navigate = useNavigate();
   const [source, setSource] = useState("");
   const [destination, setDestination] = useState("");
+  const [date, setDate] = useState("");
   const [error, setError] = useState("");
+
+  const swap = () => { setSource(destination); setDestination(source); };
 
   const search = () => {
     if (!source || !destination) {
@@ -90,72 +169,195 @@ function SearchBar() {
       return;
     }
     setError("");
-    navigate(`/search?source=${encodeURIComponent(source)}&destination=${encodeURIComponent(destination)}`);
+    const params = new URLSearchParams({ source, destination });
+    if (date) params.set("departureDate", date);
+    navigate(`/search?${params.toString()}`);
   };
 
   return (
     <div
-      className="card shadow-lg p-4 mt-5 position-relative overflow-visible"
       style={{
-        border: "1px solid rgba(255,255,255,0.8)",
-        background: "rgba(255,255,255,0.92)",
-        backdropFilter: "blur(10px)",
-        borderRadius: "20px"
+        background: "rgba(255,255,255,0.97)",
+        backdropFilter: "blur(20px)",
+        borderRadius: "24px",
+        padding: "36px 40px 32px",
+        boxShadow: "0 20px 60px rgba(11,25,44,0.14)",
+        border: "1px solid rgba(255,255,255,0.6)",
+        marginTop: "2rem",
       }}
     >
-      <div
-        className="position-absolute top-0 start-50 translate-middle badge px-4 py-2 fs-6 shadow-sm"
-        style={{
-          letterSpacing: "1px",
-          background: "linear-gradient(135deg, var(--secondary-color) 0%, var(--primary-color) 100%)"
-        }}
-      >
-        BOOK YOUR FLIGHT
+      {/* Title */}
+      <div style={{ marginBottom: "28px", textAlign: "center" }}>
+        <p
+          style={{
+            fontSize: "11px",
+            fontWeight: 700,
+            letterSpacing: "2px",
+            color: "var(--accent-color)",
+            textTransform: "uppercase",
+            margin: 0,
+          }}
+        >
+          ✈ Book Your Next Adventure
+        </p>
       </div>
 
+      {/* Error */}
       {error && (
-        <div className="alert alert-warning py-2 px-3 mt-2 mb-0 rounded-3" style={{ fontSize: "13px" }}>
+        <div
+          style={{
+            background: "#fef2f2",
+            border: "1px solid #fecaca",
+            borderRadius: "10px",
+            padding: "10px 16px",
+            fontSize: "13px",
+            color: "#dc2626",
+            marginBottom: "20px",
+          }}
+        >
           {error}
         </div>
       )}
 
-      <div className="row g-3 mt-2">
-        {/* Origin */}
-        <div className="col-md-5">
-          <CityInput
-            label="Departure City"
-            icon={FaPlaneDeparture}
-            value={source}
-            onChange={(v) => { setSource(v); setError(""); }}
-            placeholder="e.g. Delhi"
-            excludeCity={destination}
-          />
+      {/* Search fields row */}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "flex-end",
+          gap: "0",
+          flexWrap: "wrap",
+        }}
+      >
+        {/* Source */}
+        <CityInput
+          label="From"
+          icon={FaPlaneDeparture}
+          value={source}
+          onChange={(v) => { setSource(v); setError(""); }}
+          placeholder="Departure city"
+          excludeCity={destination}
+          accent="#1e3e62"
+        />
+
+        {/* Swap divider */}
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "0 16px", paddingBottom: "10px" }}>
+          <button
+            onClick={swap}
+            title="Swap cities"
+            style={{
+              width: "36px",
+              height: "36px",
+              borderRadius: "50%",
+              border: "2px solid #e2e8f0",
+              background: "white",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: "var(--secondary-color)",
+              transition: "all 0.2s",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = "var(--secondary-color)";
+              e.currentTarget.style.color = "white";
+              e.currentTarget.style.borderColor = "var(--secondary-color)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = "white";
+              e.currentTarget.style.color = "var(--secondary-color)";
+              e.currentTarget.style.borderColor = "#e2e8f0";
+            }}
+          >
+            <FaExchangeAlt size={13} />
+          </button>
         </div>
 
         {/* Destination */}
-        <div className="col-md-5">
-          <CityInput
-            label="Destination City"
-            icon={FaPlaneArrival}
-            value={destination}
-            onChange={(v) => { setDestination(v); setError(""); }}
-            placeholder="e.g. Mumbai"
-            excludeCity={source}
+        <CityInput
+          label="To"
+          icon={FaPlaneArrival}
+          value={destination}
+          onChange={(v) => { setDestination(v); setError(""); }}
+          placeholder="Destination city"
+          excludeCity={source}
+          accent="#e2b659"
+        />
+
+        {/* Vertical divider */}
+        <div style={{ width: "1px", background: "#e2e8f0", height: "40px", margin: "0 24px 12px" }} />
+
+        {/* Date */}
+        <div style={{ display: "flex", flexDirection: "column", minWidth: "160px" }}>
+          <label
+            style={{
+              fontSize: "11px",
+              fontWeight: 700,
+              letterSpacing: "0.8px",
+              color: "#94a3b8",
+              textTransform: "uppercase",
+              marginBottom: "8px",
+              display: "flex",
+              alignItems: "center",
+              gap: "6px",
+            }}
+          >
+            <FaCalendarAlt size={11} style={{ color: "#10b981" }} />
+            Date
+          </label>
+          <input
+            type="date"
+            value={date}
+            onChange={(e) => setDate(e.target.value)}
+            min={new Date().toISOString().split("T")[0]}
+            style={{
+              height: "54px",
+              border: "none",
+              borderBottom: "2px solid #e2e8f0",
+              borderRadius: 0,
+              outline: "none",
+              background: "transparent",
+              fontSize: "15px",
+              fontWeight: 600,
+              color: "#0f172a",
+              padding: "0",
+              fontFamily: "inherit",
+              cursor: "pointer",
+            }}
           />
         </div>
 
-        {/* Button */}
-        <div className="col-md-2 d-flex align-items-end">
+        {/* Search button */}
+        <div style={{ paddingLeft: "24px", paddingBottom: "2px" }}>
           <button
-            className="btn btn-primary w-100 shadow-sm d-flex align-items-center justify-content-center gap-2"
             onClick={search}
             style={{
-              height: "48px",
-              background: "linear-gradient(135deg, var(--secondary-color) 0%, var(--primary-color) 100%)"
+              height: "54px",
+              padding: "0 36px",
+              background: "linear-gradient(135deg, #1e3e62 0%, #0b192c 100%)",
+              color: "white",
+              border: "none",
+              borderRadius: "14px",
+              fontSize: "15px",
+              fontWeight: 700,
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              gap: "10px",
+              boxShadow: "0 8px 24px rgba(11,25,44,0.25)",
+              transition: "all 0.2s",
+              whiteSpace: "nowrap",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = "translateY(-2px)";
+              e.currentTarget.style.boxShadow = "0 12px 32px rgba(11,25,44,0.35)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = "translateY(0)";
+              e.currentTarget.style.boxShadow = "0 8px 24px rgba(11,25,44,0.25)";
             }}
           >
-            <FaSearch />
-            <span>Find</span>
+            <FaSearch size={14} />
+            Search Flights
           </button>
         </div>
       </div>

@@ -25,6 +25,8 @@ function AdminFlights() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
+  const token = localStorage.getItem("token");
+
   const fetchFlights = () => {
     setLoading(true);
     axios.get(API)
@@ -60,6 +62,8 @@ function AdminFlights() {
     setShowForm(true);
   };
 
+  const authHeaders = { headers: { Authorization: `Bearer ${token}` } };
+
   const handleSave = async () => {
     const required = ["flightNumber", "airline", "source", "destination", "departureDate", "departureTime", "arrivalTime", "price", "availableSeats"];
     for (const k of required) {
@@ -69,9 +73,9 @@ function AdminFlights() {
     setError("");
     try {
       if (editId) {
-        await axios.put(`${API}/${editId}`, form);
+        await axios.put(`${API}/${editId}`, form, authHeaders);
       } else {
-        await axios.post(API, form);
+        await axios.post(API, form, authHeaders);
       }
       setSaving(false);
       setShowForm(false);
@@ -85,12 +89,24 @@ function AdminFlights() {
   const handleDelete = async (id, flightNumber) => {
     if (!window.confirm(`Delete flight ${flightNumber}? This cannot be undone.`)) return;
     try {
-      await axios.delete(`${API}/${id}`);
+      await axios.delete(`${API}/${id}`, authHeaders);
       fetchFlights();
     } catch {
       alert("Failed to delete flight.");
     }
   };
+
+  if (!token) {
+    return (
+      <div className="container mt-5 text-center py-5">
+        <div className="card shadow-sm p-5 border-0 mx-auto" style={{ maxWidth: "500px", borderRadius: "20px" }}>
+          <h4 className="text-secondary fw-bold mb-3">Access Denied</h4>
+          <p className="text-muted mb-4">You must be logged in to manage flights.</p>
+          <a href="/login" className="btn btn-primary px-4 py-2" style={{ borderRadius: "8px" }}>Log In</a>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="container mt-5 mb-5">
@@ -197,7 +213,7 @@ function AdminFlights() {
           <p className="text-muted small">Click "Add Flight" to insert the first flight.</p>
         </div>
       ) : (
-        <div className="card border-0 shadow-sm p-3" style={{ borderRadius: "16px" }}>
+        <div className="card card-no-hover border-0 shadow-sm p-3" style={{ borderRadius: "16px" }}>
           <div className="table-responsive">
             <table className="table table-hover align-middle mb-0">
               <thead>

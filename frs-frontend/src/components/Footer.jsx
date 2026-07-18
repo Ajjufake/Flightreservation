@@ -31,7 +31,7 @@ function Footer() {
               <li><Link to="/">Home</Link></li>
               <li><Link to="/flights">Flights List</Link></li>
               <li><Link to="/search">Search Flight</Link></li>
-              <li><Link to="/dashboard">Admin Dashboard</Link></li>
+              <li><Link to="/dashboard">My Dashboard</Link></li>
             </ul>
           </div>
 

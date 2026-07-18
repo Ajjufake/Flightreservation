@@ -1,31 +1,11 @@
-/* Navbar styles */
-.navbar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 1rem 2rem;
-  background-color: #fff;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+/* navbar.css — kept minimal; all real styling lives in Navbar.jsx inline styles and main.css */
+
+/* Smooth collapse animation for mobile menu */
+.navbar-collapse {
+  transition: all 0.3s ease;
 }
 
-.navbar-brand {
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: #0d6efd;
-}
-
-.navbar-links {
-  display: flex;
-  gap: 1rem;
-  list-style: none;
-}
-
-.navbar-links a {
-  text-decoration: none;
-  color: #333;
-  font-weight: 500;
-}
-
-.navbar-links a:hover {
-  color: #0d6efd;
+/* Ensure the profile dropdown is always above other content */
+.navbar .nav-item {
+  position: relative;
 }

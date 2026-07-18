@@ -28,11 +28,24 @@ function Login() {
     setError("");
     try {
       const response = await login(email, password);
-      localStorage.setItem("token", response.token);
+      const token = response.token;
+      localStorage.setItem("token", token);
       localStorage.setItem("userEmail", email);
-      setLoading(false);
-      // Navigate and reload so Navbar & Hero pick up the new auth state
-      navigate("/");
+
+      // Fetch role immediately so role-based UI works from first render
+      try {
+        const userRes = await import("axios").then(m =>
+          m.default.get("http://localhost:8080/api/users/me", {
+            headers: { Authorization: `Bearer ${token}` }
+          })
+        );
+        localStorage.setItem("userRole", userRes.data.role || "USER");
+        localStorage.setItem("userFullName", userRes.data.fullName || "");
+      } catch (_) {
+        localStorage.setItem("userRole", "USER");
+      }
+
+      // Use replace so Navbar & Hero pick up the new auth state cleanly
       window.location.replace("/");
     } catch (err) {
       setLoading(false);

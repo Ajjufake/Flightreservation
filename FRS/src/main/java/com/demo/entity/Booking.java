@@ -26,6 +26,8 @@ public class Booking {
 
     private String status;
 
+    private String paymentMethod;
+
     @ManyToOne
     @JoinColumn(name = "user_id")
     private User user;
@@ -35,6 +37,14 @@ public class Booking {
     private Flight flight;
 
     public Booking() {
+    }
+
+    public String getPaymentMethod() {
+        return paymentMethod;
+    }
+
+    public void setPaymentMethod(String paymentMethod) {
+        this.paymentMethod = paymentMethod;
     }
 
     public Long getId() {
